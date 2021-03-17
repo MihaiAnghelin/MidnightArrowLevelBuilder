@@ -127,16 +127,19 @@ int MAIN
 		
 			input::updateInput();
 
-			if (!gameLogic(fDeltaTime))
-			{
-				quit = true;
-			}
+		
 
 			ImGui_ImplOpenGL3_NewFrame();
 			ImGui_ImplWin32_NewFrame();
 			ImGui::NewFrame();
 
 			imguiFunc(deltaTime);
+
+			if (!gameLogic(fDeltaTime))
+			{
+				quit = true;
+			}
+
 
 			ImGui::Render();
 			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

@@ -30,7 +30,6 @@ MapRenderer mapRenderer;
 MapData mapData;
 
 gl2d::Texture sprites;
-gl2d::Texture arrowSprite;
 
 gl2d::FrameBuffer backGroundFBO;
 gl2d::Texture backgroundTexture;
@@ -39,6 +38,10 @@ std::vector<Arrow> arrows;
 std::vector<signData> signs;
 std::vector<doorData> doors;
 std::vector<torchData> torches;
+
+std::vector<unsigned short> coppyedBlocks;
+int coppiedSizeX = 0;
+int coppiedSizeY = 0;
 
 unsigned short currentBlock = Block::blueNoSolid1;
 
@@ -54,9 +57,15 @@ bool showDangers = false;
 bool simulateLights = false;
 bool simulateUnlitLights = false;
 bool highlightCheckPoints = false;
-bool editItems = false;
-char signStr[255] = {};
+
+int editorOption = 0; //0 place blocks, 1 edit items
+
+char signStr[256] = {};
 glm::ivec2 itemPos;
+
+glm::ivec2 itemPosEditorBegin;
+glm::ivec2 itemPosEditorEnd;
+
 int levelId = -2;
 float torchLight = 5;
 float torchXBox= 0;
@@ -76,6 +85,42 @@ float getTorchLight(int x, int y)
 	{
 		return 5;
 	}
+}
+
+void placeBlock(unsigned short type, int x, int y, MapData &mapData)
+{
+	if (type == Block::flagUp)
+	{
+		for (int x = 0; x < mapData.w; x++)
+			for (int y = 0; y < mapData.h; y++)
+			{
+				if (mapData.get(x, y).type == Block::flagUp)
+				{
+					mapData.get(x, y).type = Block::flagDown;
+				}
+			}
+	}
+
+	mapData.get(x, y).type = type;
+
+}
+
+void placeBlockSafe(unsigned short type, int x, int y, MapData &mapData)
+{
+	if(x >= 0 && x < mapData.w && y >=0 && y <mapData.h)
+	{
+		placeBlock(type, x, y, mapData);
+	}
+}
+
+void eraseBlockSafe(int x, int y, MapData &mapData)
+{
+	placeBlockSafe(Block::none, x, y, mapData);
+}
+
+void eraseBlock(int x, int y, MapData &mapData)
+{
+	placeBlock(Block::none, x, y, mapData);
 }
 
 bool initGame()
@@ -142,16 +187,21 @@ bool gameLogic(float deltaTime)
 	mapData.clearColorData();
 
 #pragma region Adding Blocks Into the World
-	if (editItems)
+
+
+	glm::vec2 mousePos;
+	mousePos.x = (platform::getRelMousePosition().x + renderer2d.currentCamera.position.x);
+	mousePos.y = (platform::getRelMousePosition().y + renderer2d.currentCamera.position.y);
+
+	mousePos = gl2d::scaleAroundPoint(mousePos, renderer2d.currentCamera.position +
+				glm::vec2{ renderer2d.windowW / 2, renderer2d.windowH / 2 }, 1.f / renderer2d.currentCamera.zoom);
+
+	if (editorOption == 1)
 	{
+
 		if (platform::isLMouseButtonPressed())
 		{
-			glm::vec2 mousePos;
-			mousePos.x = (platform::getRelMousePosition().x + renderer2d.currentCamera.position.x);
-			mousePos.y = (platform::getRelMousePosition().y + renderer2d.currentCamera.position.y);
-
-			mousePos = gl2d::scaleAroundPoint(mousePos, renderer2d.currentCamera.position +
-				glm::vec2{ renderer2d.windowW / 2, renderer2d.windowH / 2 }, 1.f / renderer2d.currentCamera.zoom);
+			
 			if (mousePos.x / BLOCK_SIZE < 0 || (mousePos.x) / BLOCK_SIZE >= mapData.w
 				|| mousePos.y / BLOCK_SIZE < 0 || (mousePos.y) / BLOCK_SIZE >= mapData.h)
 			{
@@ -181,7 +231,7 @@ bool gameLogic(float deltaTime)
 					else
 					{
 						signStr[0] = 0;
-						std::string s = std::string(signStr);
+						std::string s = "";
 						glm::ivec2 pos = { mousePos.x / BLOCK_SIZE, mousePos.y / BLOCK_SIZE };
 						signData d(pos, s);
 						signs.emplace_back(d);
@@ -208,7 +258,7 @@ bool gameLogic(float deltaTime)
 						glm::ivec2 pos = { (int)mousePos.x / BLOCK_SIZE, (int)mousePos.y / BLOCK_SIZE };
 						doorData d(pos, -2);
 						doors.emplace_back(d);
-
+						levelId = -2;
 						itemPos = { (int)mousePos.x / BLOCK_SIZE, (int)mousePos.y / BLOCK_SIZE };
 					}
 				}
@@ -235,6 +285,9 @@ bool gameLogic(float deltaTime)
 						torchData d(pos, 5);
 						torches.emplace_back(d);
 
+						torchLight = 5;
+						torchXBox = 0;
+						torchYBox = 0;
 						itemPos = { (int)mousePos.x / BLOCK_SIZE, (int)mousePos.y / BLOCK_SIZE };
 					}
 				}
@@ -242,116 +295,169 @@ bool gameLogic(float deltaTime)
 			}
 		}
 	}
-#pragma region Eye Dropper Tool
-	else if (platform::isKeyHeld(VK_CONTROL))
+
+	if (editorOption == 2)
 	{
-		if (platform::isLMouseButtonPressed() || platform::isRMouseButtonPressed())
+		
+		if(platform::isLMouseButtonPressed())
 		{
-			glm::vec2 mousePos;
-			mousePos.x = platform::getRelMousePosition().x + renderer2d.currentCamera.position.x;
-			mousePos.y = platform::getRelMousePosition().y + renderer2d.currentCamera.position.y;
-
-			mousePos = gl2d::scaleAroundPoint(mousePos, renderer2d.currentCamera.position +
-				glm::vec2{ renderer2d.windowW / 2, renderer2d.windowH / 2 }, 1.f / renderer2d.currentCamera.zoom);
-			if (mousePos.x / BLOCK_SIZE < 0 || (mousePos.x) / BLOCK_SIZE >= mapData.w
-				|| mousePos.y / BLOCK_SIZE < 0 || (mousePos.y) / BLOCK_SIZE >= mapData.h)
-			{
-
-			}
-			else
-			{
-				if (mapData.get(mousePos.x / BLOCK_SIZE, (mousePos.y) / BLOCK_SIZE).type != Block::none)
-					currentBlock = mapData.get(mousePos.x / BLOCK_SIZE, (mousePos.y) / BLOCK_SIZE).type;
-			}
+			itemPosEditorBegin = { mousePos.x / BLOCK_SIZE, mousePos.y / BLOCK_SIZE };		
+			itemPosEditorEnd = { mousePos.x / BLOCK_SIZE, mousePos.y / BLOCK_SIZE };
 		}
+
+		if(platform::isLMouseHeld())
+		{
+			itemPosEditorEnd = { mousePos.x / BLOCK_SIZE, mousePos.y / BLOCK_SIZE };
+		}else
+		{
+			int beginx = std::min(itemPosEditorBegin.x, itemPosEditorEnd.x);
+			int beginy = std::min(itemPosEditorBegin.y, itemPosEditorEnd.y);;
+			int endx = std::max(itemPosEditorBegin.x, itemPosEditorEnd.x);;
+			int endy = std::max(itemPosEditorBegin.y, itemPosEditorEnd.y);;
+
+			itemPosEditorBegin = { beginx, beginy };
+			itemPosEditorEnd = { endx, endy };
+
+			if(itemPosEditorBegin.x < 0)
+			{
+				itemPosEditorBegin.x = 0;
+			}
+			if (itemPosEditorBegin.y < 0)
+			{
+				itemPosEditorBegin.y = 0;
+			}
+			if (itemPosEditorEnd.x >= mapData.w)
+			{
+				itemPosEditorBegin.x = mapData.w-1;
+			}
+			if (itemPosEditorEnd.y >= mapData.h)
+			{
+				itemPosEditorBegin.y = mapData.h - 1;
+			}
+
+		}
+
+		{
+			int beginx = std::min(itemPosEditorBegin.x, itemPosEditorEnd.x);
+			int beginy = std::min(itemPosEditorBegin.y, itemPosEditorEnd.y);;
+			int endx = std::max(itemPosEditorBegin.x, itemPosEditorEnd.x);;
+			int endy = std::max(itemPosEditorBegin.y, itemPosEditorEnd.y);;
+
+			glm::ivec2 b = { beginx, beginy };
+			glm::ivec2 e = { endx, endy };
+
+			renderer2d.renderRectangle({ b.x * BLOCK_SIZE, b.y * BLOCK_SIZE,
+			(e.x - b.x + 1) * BLOCK_SIZE,
+			(e.y - b.y + 1) * BLOCK_SIZE },
+			{ 1,1,0.2,0.2 });
+		}
+		
+
 	}
-#pragma endregion
 
-	else
+	if (editorOption == 0)
 	{
-#pragma region Place Blocks
-		if (platform::isLMouseHeld())
+
+	#pragma region Eye Dropper Tool
+		if (platform::isKeyHeld(VK_CONTROL))
 		{
-			glm::vec2 mousePos;
-			mousePos.x = platform::getRelMousePosition().x + renderer2d.currentCamera.position.x;
-			mousePos.y = platform::getRelMousePosition().y + renderer2d.currentCamera.position.y;
-
-			mousePos = gl2d::scaleAroundPoint(mousePos, renderer2d.currentCamera.position +
-				glm::vec2{ renderer2d.windowW / 2, renderer2d.windowH / 2 }, 1.f / renderer2d.currentCamera.zoom);
-
-			if ((mousePos.x) / BLOCK_SIZE < 0 || (mousePos.x) / BLOCK_SIZE >= mapData.w
-				|| (mousePos.y) / BLOCK_SIZE < 0 || (mousePos.y) / BLOCK_SIZE >= mapData.h)
+			if (platform::isLMouseButtonPressed() || platform::isRMouseButtonPressed())
 			{
+				glm::vec2 mousePos;
+				mousePos.x = platform::getRelMousePosition().x + renderer2d.currentCamera.position.x;
+				mousePos.y = platform::getRelMousePosition().y + renderer2d.currentCamera.position.y;
 
-			}
-			else
-			{
-				if (currentBlock == Block::flagUp)
+				mousePos = gl2d::scaleAroundPoint(mousePos, renderer2d.currentCamera.position +
+					glm::vec2{ renderer2d.windowW / 2, renderer2d.windowH / 2 }, 1.f / renderer2d.currentCamera.zoom);
+				if (mousePos.x / BLOCK_SIZE < 0 || (mousePos.x) / BLOCK_SIZE >= mapData.w
+					|| mousePos.y / BLOCK_SIZE < 0 || (mousePos.y) / BLOCK_SIZE >= mapData.h)
 				{
-					for (int x = 0; x < mapData.w; x++)
-						for (int y = 0; y < mapData.h; y++)
-						{
-							if (mapData.get(x, y).type == Block::flagUp)
-							{
-								mapData.get(x, y).type = Block::flagDown;
-							}
-						}
+
 				}
-
-				mapData.get(mousePos.x / BLOCK_SIZE, mousePos.y / BLOCK_SIZE).type = currentBlock;
-
+				else
+				{
+					if (mapData.get(mousePos.x / BLOCK_SIZE, (mousePos.y) / BLOCK_SIZE).type != Block::none)
+						currentBlock = mapData.get(mousePos.x / BLOCK_SIZE, (mousePos.y) / BLOCK_SIZE).type;
+				}
 			}
-
 		}
-#pragma endregion
+	#pragma endregion
 
-#pragma region Eraser
-		else if (platform::isRMouseHeld())
-		{
-			glm::vec2 mousePos;
-			mousePos.x = platform::getRelMousePosition().x + renderer2d.currentCamera.position.x;
-			mousePos.y = platform::getRelMousePosition().y + renderer2d.currentCamera.position.y;
-
-			mousePos = gl2d::scaleAroundPoint(mousePos, renderer2d.currentCamera.position +
-				glm::vec2{ renderer2d.windowW / 2, renderer2d.windowH / 2 }, 1.f / renderer2d.currentCamera.zoom);
-			if (mousePos.x / BLOCK_SIZE < 0 || (mousePos.x) / BLOCK_SIZE >= mapData.w
-				|| mousePos.y / BLOCK_SIZE < 0 || (mousePos.y) / BLOCK_SIZE >= mapData.h)
-			{
-
-			}
-			else
-			{
-				mapData.get((mousePos.x) / BLOCK_SIZE, (mousePos.y) / BLOCK_SIZE).type = Block::none;
-			}
-
-		}
-#pragma endregion
-
-#pragma region Render the current block
 		else
 		{
-			glm::vec2 mousePos;
-			mousePos.x = platform::getRelMousePosition().x + renderer2d.currentCamera.position.x;
-			mousePos.y = platform::getRelMousePosition().y + renderer2d.currentCamera.position.y;
-
-			mousePos = gl2d::scaleAroundPoint(mousePos, renderer2d.currentCamera.position +
-				glm::vec2{ renderer2d.windowW / 2, renderer2d.windowH / 2 }, 1.f / renderer2d.currentCamera.zoom);
-			if (mousePos.x / BLOCK_SIZE < 0 || (mousePos.x) / BLOCK_SIZE >= mapData.w
-				|| mousePos.y / BLOCK_SIZE < 0 || (mousePos.y) / BLOCK_SIZE >= mapData.h)
+		#pragma region Place Blocks
+			if (platform::isLMouseHeld())
 			{
+				glm::vec2 mousePos;
+				mousePos.x = platform::getRelMousePosition().x + renderer2d.currentCamera.position.x;
+				mousePos.y = platform::getRelMousePosition().y + renderer2d.currentCamera.position.y;
+
+				mousePos = gl2d::scaleAroundPoint(mousePos, renderer2d.currentCamera.position +
+					glm::vec2{ renderer2d.windowW / 2, renderer2d.windowH / 2 }, 1.f / renderer2d.currentCamera.zoom);
+
+				if ((mousePos.x) / BLOCK_SIZE < 0 || (mousePos.x) / BLOCK_SIZE >= mapData.w
+					|| (mousePos.y) / BLOCK_SIZE < 0 || (mousePos.y) / BLOCK_SIZE >= mapData.h)
+				{
+
+				}
+				else
+				{
+					placeBlock(currentBlock, mousePos.x / BLOCK_SIZE, mousePos.y / BLOCK_SIZE,
+						mapData);
+
+				}
 
 			}
+		#pragma endregion
+
+		#pragma region Eraser
+			else if (platform::isRMouseHeld())
+			{
+				glm::vec2 mousePos;
+				mousePos.x = platform::getRelMousePosition().x + renderer2d.currentCamera.position.x;
+				mousePos.y = platform::getRelMousePosition().y + renderer2d.currentCamera.position.y;
+
+				mousePos = gl2d::scaleAroundPoint(mousePos, renderer2d.currentCamera.position +
+					glm::vec2{ renderer2d.windowW / 2, renderer2d.windowH / 2 }, 1.f / renderer2d.currentCamera.zoom);
+				if (mousePos.x / BLOCK_SIZE < 0 || (mousePos.x) / BLOCK_SIZE >= mapData.w
+					|| mousePos.y / BLOCK_SIZE < 0 || (mousePos.y) / BLOCK_SIZE >= mapData.h)
+				{
+
+				}
+				else
+				{
+					eraseBlock((mousePos.x) / BLOCK_SIZE, (mousePos.y) / BLOCK_SIZE, mapData);
+				}
+
+			}
+		#pragma endregion
+
+		#pragma region Render the current block
 			else
 			{
-				gl2d::TextureAtlas spriteAtlas(BLOCK_COUNT, 4);
+				glm::vec2 mousePos;
+				mousePos.x = platform::getRelMousePosition().x + renderer2d.currentCamera.position.x;
+				mousePos.y = platform::getRelMousePosition().y + renderer2d.currentCamera.position.y;
 
-				renderer2d.renderRectangle({ (int)(mousePos.x / BLOCK_SIZE) * BLOCK_SIZE , (int)(mousePos.y / BLOCK_SIZE) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE },
-					{}, 0, sprites, { spriteAtlas.get(currentBlock - 1, 0).x, spriteAtlas.get(currentBlock - 1,0).y,
-					 spriteAtlas.get(currentBlock - 1, 0).z, spriteAtlas.get(currentBlock - 1,0).w });
+				mousePos = gl2d::scaleAroundPoint(mousePos, renderer2d.currentCamera.position +
+					glm::vec2{ renderer2d.windowW / 2, renderer2d.windowH / 2 }, 1.f / renderer2d.currentCamera.zoom);
+				if (mousePos.x / BLOCK_SIZE < 0 || (mousePos.x) / BLOCK_SIZE >= mapData.w
+					|| mousePos.y / BLOCK_SIZE < 0 || (mousePos.y) / BLOCK_SIZE >= mapData.h)
+				{
+
+				}
+				else
+				{
+					gl2d::TextureAtlas spriteAtlas(BLOCK_COUNT, 4);
+
+					renderer2d.renderRectangle({ (int)(mousePos.x / BLOCK_SIZE) * BLOCK_SIZE , (int)(mousePos.y / BLOCK_SIZE) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE },
+						{}, 0, sprites, { spriteAtlas.get(currentBlock - 1, 0).x, spriteAtlas.get(currentBlock - 1,0).y,
+						 spriteAtlas.get(currentBlock - 1, 0).z, spriteAtlas.get(currentBlock - 1,0).w });
+				}
 			}
-		}
-#pragma endregion
+		#pragma endregion
 
+		}
 	}
 
 #pragma endregion
@@ -473,7 +579,7 @@ bool gameLogic(float deltaTime)
 				renderer2d.renderRectangle({ x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE }, { 0,1,0.2,0.9 });
 			}
 
-			if (isSign(mapData.get(x, y).type && editItems))
+			if (isSign(mapData.get(x, y).type) && (editorOption == 1))
 			{
 				// show signs
 			}
@@ -483,7 +589,7 @@ bool gameLogic(float deltaTime)
 
 	}
 
-	if (editItems)
+	if (editorOption == 1)
 	{
 		renderer2d.renderRectangle({ itemPos.x * BLOCK_SIZE, itemPos.y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE }, { 1,1,0.2,0.4 });
 		
@@ -701,56 +807,6 @@ void imguiFunc(float deltaTime)
 	ImGui::NewLine();
 #pragma endregion
 
-#pragma region Block Selector
-	ImGui::Checkbox("Edit items", &editItems);
-
-	if (editItems)
-	{
-		ImGui::InputText("Sign Text", signStr, sizeof(signStr));
-#pragma region Edit Sign
-
-
-		if (ImGui::Button("Save Sign"))
-		{
-			auto it = std::find_if(signs.begin(), signs.end(),
-				[x = itemPos.x, y = itemPos.y](signData& d)
-			{ return d.pos.x == x && d.pos.y == y; });
-			it->text = std::string(signStr);
-		}
-#pragma endregion
-		ImGui::NewLine();
-#pragma region Edit Door
-		ImGui::InputInt("Next Level Id", &levelId);
-
-		if (ImGui::Button("Save Door"))
-		{
-			auto it = std::find_if(doors.begin(), doors.end(),
-				[x = itemPos.x, y = itemPos.y](doorData& d)
-			{ return d.pos.x == x && d.pos.y == y; });
-			it->levelId = levelId;
-		}
-#pragma endregion
-		ImGui::NewLine();
-#pragma region Edit Torch
-		ImGui::InputFloat("Torch", &torchLight);
-		ImGui::InputFloat("Torch XBox", &torchXBox);
-		ImGui::InputFloat("Torch YBox", &torchYBox);
-
-		if (ImGui::Button("Save Torch"))
-		{
-			auto it = std::find_if(torches.begin(), torches.end(),
-				[x = itemPos.x, y = itemPos.y](torchData& d)
-			{ return d.pos.x == x && d.pos.y == y; });
-
-			it->light = torchLight;
-			it->xBox = torchXBox;
-			it->yBox = torchYBox;
-
-		}
-#pragma endregion
-
-	}
-	ImGui::NewLine();
 
 	ImGui::Checkbox("Show Collidable Blocks", &collidable);
 	ImGui::Checkbox("Show Non-Collidable Blocks", &nonCollidable);
@@ -761,90 +817,231 @@ void imguiFunc(float deltaTime)
 	ImGui::Checkbox("Simulate Lights", &simulateLights); ImGui::SameLine();
 	ImGui::Checkbox("Simulate Unlit Lights", &simulateUnlitLights); ImGui::SameLine();
 	ImGui::Checkbox("Highlight Check points", &highlightCheckPoints);
+	ImGui::NewLine();
 
-	gl2d::TextureAtlas spriteAtlas(BLOCK_COUNT, 4);
-	unsigned short mCount = 1;
-	ImGui::BeginChild("Block Selector");
-
-	if (collidable && nonCollidable)
+	const char *const items[]
 	{
-		unsigned short localCount = 0;
-		while (mCount < Block::lastBlock)
-		{
-			if (!isUnfinished(mCount))
-			{
-				ImGui::PushID(mCount);
-				if (ImGui::ImageButton((void*)(intptr_t)sprites.id,
-					{ 35,35 }, { spriteAtlas.get(mCount - 1, 0).x, spriteAtlas.get(mCount - 1,0).y },
-					{ spriteAtlas.get(mCount - 1, 0).z, spriteAtlas.get(mCount - 1,0).w }))
-				{
-					currentBlock = mCount;
-				}
-				ImGui::PopID();
+		"Block Builder",
+		"Item editor",
+		"World editor",
+	};
 
-				if (localCount % 10 != 0)
-				{
-					ImGui::SameLine();
-				}
-				localCount++;
-			}
+	ImGui::ListBox("Editor type", &editorOption, items, sizeof(items) / sizeof(*items));
 
-			mCount++;
-		}
-	}
-	else
+	if (editorOption == 1)
 	{
-		if (collidable && !nonCollidable)
+		ImGui::InputText("Sign Text", signStr, sizeof(signStr));
+#pragma region Edit Sign
+
+		//if (ImGui::Button("Save Sign"))
 		{
-			unsigned short localCount = 0;
-			while (mCount < Block::lastBlock)
+			auto it = std::find_if(signs.begin(), signs.end(),
+				[x = itemPos.x, y = itemPos.y](signData& d)
+			{ return d.pos.x == x && d.pos.y == y; });
+
+			if(it != signs.end())
 			{
-				if (isColidable(mCount) && !isUnfinished(mCount))
-				{
-					ImGui::PushID(mCount);
-					if (ImGui::ImageButton((void*)(intptr_t)sprites.id,
-						{ 35,35 }, { spriteAtlas.get(mCount - 1, 0).x, spriteAtlas.get(mCount - 1,0).y },
-						{ spriteAtlas.get(mCount - 1, 0).z, spriteAtlas.get(mCount - 1,0).w }))
-					{
-						currentBlock = mCount;
-					}
-					ImGui::PopID();
-
-					if (localCount % 10 != 0)
-						ImGui::SameLine();
-					localCount++;
-				}
-				mCount++;
+				it->text = std::string(signStr);
 			}
-		}
-		else if (!collidable && nonCollidable)
-		{
-			unsigned short localCount = 0;
-			while (mCount < Block::lastBlock)
-			{
-				if (!isColidable(mCount) && !isUnfinished(mCount))
-				{
-					ImGui::PushID(mCount);
-					if (ImGui::ImageButton((void*)(intptr_t)sprites.id,
-						{ 35,35 }, { spriteAtlas.get(mCount - 1, 0).x, spriteAtlas.get(mCount - 1,0).y },
-						{ spriteAtlas.get(mCount - 1, 0).z, spriteAtlas.get(mCount - 1,0).w }))
-					{
-						currentBlock = mCount;
-						//llog((int)currentBlock);
-					}
-					ImGui::PopID();
 
-					if (localCount % 10 != 0)
-						ImGui::SameLine();
-					localCount++;
-				}
-				mCount++;
-			}
 		}
-	}
-	ImGui::EndChild();
-
 #pragma endregion
+		ImGui::NewLine();
+#pragma region Edit Door
+		ImGui::InputInt("Next Level Id", &levelId);
+
+		//if (ImGui::Button("Save Door"))
+		{
+			auto it = std::find_if(doors.begin(), doors.end(),
+				[x = itemPos.x, y = itemPos.y](doorData& d)
+			{ return d.pos.x == x && d.pos.y == y; });
+			
+			if(it != doors.end())
+			{
+				it->levelId = levelId;
+			}
+			
+		}
+#pragma endregion
+		ImGui::NewLine();
+#pragma region Edit Torch
+		ImGui::DragFloat("Torch", &torchLight);
+		ImGui::DragFloat("Torch XBox", &torchXBox);
+		ImGui::DragFloat("Torch YBox", &torchYBox);
+
+		//if (ImGui::Button("Save Torch"))
+		{
+			auto it = std::find_if(torches.begin(), torches.end(),
+				[x = itemPos.x, y = itemPos.y](torchData& d)
+			{ return d.pos.x == x && d.pos.y == y; });
+
+
+			if(it != torches.end())
+			{
+				it->light = torchLight;
+				it->xBox = torchXBox;
+				it->yBox = torchYBox;
+			}
+
+		}
+#pragma endregion
+
+	}
+
+
+	if (editorOption == 0)
+	{
+
+		gl2d::TextureAtlas spriteAtlas(BLOCK_COUNT, 4);
+		unsigned short mCount = 1;
+		ImGui::BeginChild("Block Selector");
+
+		if (collidable && nonCollidable)
+		{
+			unsigned short localCount = 0;
+			while (mCount < Block::lastBlock)
+			{
+				if (!isUnfinished(mCount))
+				{
+					ImGui::PushID(mCount);
+					if (ImGui::ImageButton((void *)(intptr_t)sprites.id,
+						{ 35,35 }, { spriteAtlas.get(mCount - 1, 0).x, spriteAtlas.get(mCount - 1,0).y },
+						{ spriteAtlas.get(mCount - 1, 0).z, spriteAtlas.get(mCount - 1,0).w }))
+					{
+						currentBlock = mCount;
+					}
+					ImGui::PopID();
+
+					if (localCount % 10 != 0)
+					{
+						ImGui::SameLine();
+					}
+					localCount++;
+				}
+
+				mCount++;
+			}
+		}
+		else
+		{
+			if (collidable && !nonCollidable)
+			{
+				unsigned short localCount = 0;
+				while (mCount < Block::lastBlock)
+				{
+					if (isColidable(mCount) && !isUnfinished(mCount))
+					{
+						ImGui::PushID(mCount);
+						if (ImGui::ImageButton((void *)(intptr_t)sprites.id,
+							{ 35,35 }, { spriteAtlas.get(mCount - 1, 0).x, spriteAtlas.get(mCount - 1,0).y },
+							{ spriteAtlas.get(mCount - 1, 0).z, spriteAtlas.get(mCount - 1,0).w }))
+						{
+							currentBlock = mCount;
+						}
+						ImGui::PopID();
+
+						if (localCount % 10 != 0)
+							ImGui::SameLine();
+						localCount++;
+					}
+					mCount++;
+				}
+			}
+			else if (!collidable && nonCollidable)
+			{
+				unsigned short localCount = 0;
+				while (mCount < Block::lastBlock)
+				{
+					if (!isColidable(mCount) && !isUnfinished(mCount))
+					{
+						ImGui::PushID(mCount);
+						if (ImGui::ImageButton((void *)(intptr_t)sprites.id,
+							{ 35,35 }, { spriteAtlas.get(mCount - 1, 0).x, spriteAtlas.get(mCount - 1,0).y },
+							{ spriteAtlas.get(mCount - 1, 0).z, spriteAtlas.get(mCount - 1,0).w }))
+						{
+							currentBlock = mCount;
+							//llog((int)currentBlock);
+						}
+						ImGui::PopID();
+
+						if (localCount % 10 != 0)
+							ImGui::SameLine();
+						localCount++;
+					}
+					mCount++;
+				}
+			}
+		}
+		ImGui::EndChild();
+	
+	}
+
+
+	if (editorOption == 2)
+	{
+		bool copy = ImGui::Button("Copy");
+		bool del = ImGui::Button("Delete");
+		bool cut = ImGui::Button("Cut");
+		ImGui::NewLine();
+		bool paste = ImGui::Button("Paste");
+		
+		if(copy || cut)
+		{
+			coppyedBlocks.clear();
+
+			coppiedSizeX = itemPosEditorEnd.x - itemPosEditorBegin.x + 1;
+			coppiedSizeY = itemPosEditorEnd.y - itemPosEditorBegin.y + 1;
+
+			coppyedBlocks.reserve(coppiedSizeX * coppiedSizeY);
+
+			for (int y = itemPosEditorBegin.y; y < itemPosEditorBegin.y + coppiedSizeY; y++)
+			{
+				for (int x = itemPosEditorBegin.x; x < itemPosEditorBegin.x + coppiedSizeX; x++)
+				{
+					auto b = mapData.get(x, y);
+					coppyedBlocks.push_back(b.type);
+				}
+			}
+
+		}
+		
+		if(del || cut)
+		{
+			int sizeX = itemPosEditorEnd.x - itemPosEditorBegin.x + 1;
+			int sizeY = itemPosEditorEnd.y - itemPosEditorBegin.y + 1;
+
+			for (int y = itemPosEditorBegin.y; y < itemPosEditorBegin.y + sizeY; y++)
+			{
+				for (int x = itemPosEditorBegin.x; x < itemPosEditorBegin.x + sizeX; x++)
+				{
+					eraseBlockSafe(x, y, mapData);
+				}
+			}
+		}
+
+		if(paste && !coppyedBlocks.empty())
+		{
+			int i = 0;
+			for (int y = itemPosEditorBegin.y; y < itemPosEditorBegin.y + coppiedSizeY; y++)
+			{
+				for (int x = itemPosEditorBegin.x; x < itemPosEditorBegin.x + coppiedSizeX; x++)
+				{
+					auto type = coppyedBlocks[i];
+
+					eraseBlockSafe(x, y, mapData);
+					placeBlockSafe(type, x, y, mapData);
+
+					i++;
+
+				}
+			}
+
+			itemPosEditorEnd = itemPosEditorBegin + glm::ivec2{ coppiedSizeX ,coppiedSizeY };
+		}
+
+
+
+	}
 
 	ImGui::End();
 }
