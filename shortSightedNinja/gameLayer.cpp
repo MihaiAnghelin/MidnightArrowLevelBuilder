@@ -57,6 +57,7 @@ bool showDangers = false;
 bool simulateLights = false;
 bool simulateUnlitLights = false;
 bool highlightCheckPoints = false;
+bool showLightAreas = false;
 
 int editorOption = 0; //0 place blocks, 1 edit items
 
@@ -464,7 +465,7 @@ bool gameLogic(float deltaTime)
 
 #pragma region Render the blocks
 
-	if (simulateLights || simulateUnlitLights)
+	if (simulateLights || simulateUnlitLights || showLightAreas)
 	{
 		for (int x = 0; x < mapData.w; x++)
 			for (int y = 0; y < mapData.h; y++)
@@ -483,7 +484,27 @@ bool gameLogic(float deltaTime)
 						light, mapData);
 				}
 
+				if(showLightAreas && (isLitTorch(mapData.get(x, y).type) || unLitTorch(mapData.get(x, y).type)) )
+				{
+					float light = getTorchLight(x, y);
+					renderer2d.renderRectangle(
+						{ x * BLOCK_SIZE + BLOCK_SIZE/2 - ((light * BLOCK_SIZE)), 
+						y * BLOCK_SIZE + BLOCK_SIZE / 2 - ((light * BLOCK_SIZE)),
+					(light * 2.f) * BLOCK_SIZE,
+					(light * 2.f) * BLOCK_SIZE },
+					{ 1,0.2,0.3,0.08 });
+				}
+
 			}
+
+		if(!simulateLights && !simulateUnlitLights)
+		{
+			for (int x = 0; x < mapData.w; x++)
+				for (int y = 0; y < mapData.h; y++)
+				{
+					mapData.get(x, y).mainColor = { 1,1,1,1 };
+				}
+		}
 	}
 	else
 	{
@@ -816,6 +837,7 @@ void imguiFunc(float deltaTime)
 	ImGui::Checkbox("Highlight Dangers", &showDangers); ImGui::SameLine();
 	ImGui::Checkbox("Simulate Lights", &simulateLights); ImGui::SameLine();
 	ImGui::Checkbox("Simulate Unlit Lights", &simulateUnlitLights); ImGui::SameLine();
+	ImGui::Checkbox("showLightAreas", &showLightAreas);
 	ImGui::Checkbox("Highlight Check points", &highlightCheckPoints);
 	ImGui::NewLine();
 
