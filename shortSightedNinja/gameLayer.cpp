@@ -49,6 +49,7 @@ unsigned short* map = nullptr;
 bool collidable = true;
 bool nonCollidable = true;
 bool showBoxes = false;
+bool showInvisibleBoxes = true;
 bool showDangers = false;
 bool simulateLights = false;
 bool simulateUnlitLights = false;
@@ -58,6 +59,8 @@ char signStr[255] = {};
 glm::ivec2 itemPos;
 int levelId = -2;
 float torchLight = 5;
+float torchXBox= 0;
+float torchYBox= 0;
 #pragma endregion
 
 float getTorchLight(int x, int y)
@@ -222,6 +225,8 @@ bool gameLogic(float deltaTime)
 					if (it != torches.end())
 					{
 						torchLight = it->light;
+						torchXBox = it->xBox;
+						torchYBox = it->yBox;
 						itemPos = { (int)mousePos.x / BLOCK_SIZE, (int)mousePos.y / BLOCK_SIZE };
 					}
 					else
@@ -438,9 +443,20 @@ bool gameLogic(float deltaTime)
 	{
 		for (int x = 0; x < mapData.w; x++)
 		{
-			if (isColidable(mapData.get(x, y).type) && showBoxes)
+			if (isColidable(mapData.get(x, y).type))
 			{
-				renderer2d.renderRectangle({ x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE }, { 0.5,0.1,0.5,0.2 });
+				if(showBoxes)
+				{
+					if(mapData.get(x, y).type !=Block::bareer)
+					renderer2d.renderRectangle({ x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE }, { 0.5,0.1,0.5,0.2 });
+				}
+
+				if (showInvisibleBoxes)
+				{
+					if(mapData.get(x, y).type == Block::bareer)
+					renderer2d.renderRectangle({ x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE }, { 0.5,0.1,0.5,0.2 });
+				}
+
 			}
 			else if (mapData.get(x, y).type == Block::water3 && showDangers)
 			{
@@ -470,6 +486,28 @@ bool gameLogic(float deltaTime)
 	if (editItems)
 	{
 		renderer2d.renderRectangle({ itemPos.x * BLOCK_SIZE, itemPos.y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE }, { 1,1,0.2,0.4 });
+		
+		if(unLitTorch(mapData.get(itemPos.x, itemPos.y).type))
+		{
+			auto it = std::find_if(torches.begin(), torches.end(),
+						[x = itemPos.x, y = itemPos.y](torchData &d)
+			{ return d.pos.x == x && d.pos.y == y; });
+
+			if (it != torches.end())
+			{
+				float w = it->xBox, h = it->yBox;
+
+				if(w && h)
+				{
+					renderer2d.renderRectangle({ (itemPos.x-w/2) * BLOCK_SIZE + BLOCK_SIZE/2,
+						(itemPos.y-h/2) * BLOCK_SIZE + BLOCK_SIZE/2,
+						w * BLOCK_SIZE, h *BLOCK_SIZE }, { 0.8,0.7,0.3,0.1 });
+				}
+
+			}
+
+		}
+	
 	}
 #pragma endregion
 
@@ -564,9 +602,12 @@ void imguiFunc(float deltaTime)
 			else if (current[3] == 't')
 			{
 				int x, y;
+				float xBox = 0, yBox = 0;
 				float light;
-				sscanf(current.c_str(), "md.torchDataVector.emplace_back(glm::ivec2{%d, %d}, %f);", &x, &y, &light);
-				torchData d({ x, y }, light);
+				sscanf(current.c_str(), "md.torchDataVector.emplace_back(glm::ivec2{%d, %d}, %f, %f, %f);",
+					&x, &y, &light, &xBox, &yBox);
+
+				torchData d({ x, y }, light, xBox, yBox);
 				torches.emplace_back(d);
 			}
 		}
@@ -616,13 +657,12 @@ void imguiFunc(float deltaTime)
 		{
 			for (int x = 0; x < mapWidth; x++)
 			{
-				outputFile << static_cast<int>(mapData.get(x, y).type) << ",";
+				outputFile << (mapData.get(x, y).type) << ",";
 			}
 			outputFile << "\n";
 		}
 
 		outputFile << "\n\n";
-
 
 
 		for (auto& i : signs)
@@ -650,7 +690,8 @@ void imguiFunc(float deltaTime)
 			if (isLitTorch(mapData.get(i.pos.x, i.pos.y).type)||
 				unLitTorch(mapData.get(i.pos.x, i.pos.y).type))
 			{
-				outputFile << "md.torchDataVector.emplace_back(glm::ivec2{ " << i.pos.x << ", " << i.pos.y << "}, " << i.light << ");\n";
+				outputFile << "md.torchDataVector.emplace_back(glm::ivec2{ " << i.pos.x << ", " << i.pos.y << "}, "
+					<< i.light << ", " << i.xBox << ", " << i.yBox << ");\n";
 			}
 		}
 
@@ -692,6 +733,8 @@ void imguiFunc(float deltaTime)
 		ImGui::NewLine();
 #pragma region Edit Torch
 		ImGui::InputFloat("Torch", &torchLight);
+		ImGui::InputFloat("Torch XBox", &torchXBox);
+		ImGui::InputFloat("Torch YBox", &torchYBox);
 
 		if (ImGui::Button("Save Torch"))
 		{
@@ -700,6 +743,9 @@ void imguiFunc(float deltaTime)
 			{ return d.pos.x == x && d.pos.y == y; });
 
 			it->light = torchLight;
+			it->xBox = torchXBox;
+			it->yBox = torchYBox;
+
 		}
 #pragma endregion
 
@@ -709,6 +755,7 @@ void imguiFunc(float deltaTime)
 	ImGui::Checkbox("Show Collidable Blocks", &collidable);
 	ImGui::Checkbox("Show Non-Collidable Blocks", &nonCollidable);
 	ImGui::Checkbox("Highlight Boxes", &showBoxes);
+	ImGui::Checkbox("Highlight Invisible Boxes", &showInvisibleBoxes);
 
 	ImGui::Checkbox("Highlight Dangers", &showDangers); ImGui::SameLine();
 	ImGui::Checkbox("Simulate Lights", &simulateLights); ImGui::SameLine();

@@ -522,9 +522,17 @@ struct torchData
 {
 	torchData() {};
 	torchData(glm::ivec2 p, float i) :pos(p), light(i) {};
+	torchData(glm::ivec2 p, float i,
+		float xBox, float yBox)
+		:pos(p), light(i), xBox(xBox), yBox(yBox)
+	{
+	};
 
 	glm::ivec2 pos;
 	float light;
+
+	float xBox = 0;
+	float yBox = 0;
 };
 
 struct signData
@@ -569,7 +577,7 @@ struct BlockInfo
 	bool startAnim = 0;
 	signed char animPos = 0;
 	float timePassed = 0;
-	unsigned short type;
+	unsigned short type = 0;
 	bool playerEntered = 0;
 	bool playerLeft = 0;
 	bool leftAnim = 1;
