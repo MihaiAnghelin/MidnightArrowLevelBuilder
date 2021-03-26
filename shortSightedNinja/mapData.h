@@ -9,7 +9,7 @@
 
 namespace Block
 {
-	enum : unsigned short
+	enum: unsigned short
 	{
 		none = 0,
 		bareer,
@@ -131,8 +131,11 @@ namespace Block
 		woodSolid18,
 		ice1, ice2, ice3, ice4, ice5, ice6, ice7, ice8, ice9, ice10, ice11,
 		ice12, ice13, ice14, ice15, iceDino1, iceDino2, iceDino3, iceDino4, iceDino5, iceDino6, iceDino7,
-#pragma region unfinished
-		unfinished27, unfinished28, unfinished29, unfinished30,
+		lavaLeftBlock,
+		lavaRightBlock,
+		lavaBottomBlock,
+	#pragma region unfinished
+		unfinished30,
 		unfinished31, unfinished32, unfinished33, unfinished34, unfinished35,
 		unfinished36, unfinished37, unfinished38, unfinished39, unfinished40,
 		unfinished41, unfinished42, unfinished43, unfinished44, unfinished45,
@@ -142,7 +145,7 @@ namespace Block
 		unfinished61, unfinished62, unfinished63, unfinished64, unfinished65,
 		unfinished66, unfinished67, unfinished68, unfinished69, unfinished70,
 		unfinished71, unfinished72, unfinished73, unfinished74, unfinished75,
-#pragma endregion
+	#pragma endregion
 
 		chainDecoration, /////////////////////////////start walls
 		brickDecoration1,
@@ -299,6 +302,13 @@ namespace Block
 		musicEffecSnow,
 		musicEffecWater,
 		musicEffecCave,
+		lavaKill,
+		lavaTop,
+		lavaBottom,
+		lava,
+		lavaSource,
+		table1,
+		table2,
 		lastBlock,
 
 	};
@@ -515,7 +525,7 @@ inline bool isDoor(unsigned short b)
 
 inline bool isUnfinished(unsigned short b)
 {
-	return b >= Block::unfinished27 && b <= Block::unfinished75;
+	return b >= Block::unfinished30 && b <= Block::unfinished75;
 }
 
 struct torchData

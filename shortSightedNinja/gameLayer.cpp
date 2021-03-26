@@ -8,6 +8,10 @@
 #include "input.h"
 #include <fstream>
 #include "imgui.h"
+#include <string>
+#include <iostream>
+#include <filesystem>
+
 #pragma region Macros
 
 #define BACKGROUND_R 33
@@ -658,6 +662,8 @@ void imguiFunc(float deltaTime)
 	ImGui::InputText("OutputFile Name", name, sizeof(name));
 	if (ImGui::Button("Open Map"))
 	{
+		renderer2d.currentCamera.setDefault();
+
 		char aux[256];
 		strcpy(aux, "resources//");
 		strcat(aux, name);
@@ -670,7 +676,7 @@ void imguiFunc(float deltaTime)
 		int it = 0;
 		std::string current;
 
-		for (int i = 0; i < mapHeight; i++)
+		for (int i = 0; i <= mapHeight; i++)
 		{
 			std::getline(inputFile, current);
 			for (auto i = 0; i < current.length(); i++)
@@ -688,6 +694,7 @@ void imguiFunc(float deltaTime)
 
 		doors.clear();
 		signs.clear();
+		torches.clear();
 
 		while (std::getline(inputFile, current))
 		{
@@ -741,6 +748,48 @@ void imguiFunc(float deltaTime)
 
 
 		inputFile.close();
+
+		mapData.cleanup();
+		mapData.create(mapWidth, mapHeight, blocks);
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Open Template"))
+	{
+		renderer2d.currentCamera.setDefault();
+
+		char aux[256];
+		strcpy(aux, "resources//");
+		strcat(aux, name);
+		strcat(aux, ".template");
+		std::ifstream inputFile(aux);
+
+		inputFile >> mapWidth >> mapHeight;
+
+		unsigned short blocks[500 * 500];
+		int it = 0;
+		std::string current;
+
+		for (int i = 0; i <= mapHeight; i++)
+		{
+			std::getline(inputFile, current);
+			for (auto i = 0; i < current.length(); i++)
+			{
+				std::string number;
+				while (current[i] != ',')
+				{
+					number += current[i];
+					i++;
+				}
+				blocks[it++] = static_cast<unsigned short>(std::stoi(number));
+			}
+		}
+		blocks[it] = NULL;
+
+		inputFile.close();
+
+		torches.clear();
+		doors.clear();
+		signs.clear();
 
 		mapData.cleanup();
 		mapData.create(mapWidth, mapHeight, blocks);
@@ -823,6 +872,27 @@ void imguiFunc(float deltaTime)
 		}
 
 		outputFile.close();
+	}
+
+	ImGui::SameLine();
+	if(ImGui::Button("Save Template"))
+	{
+		char aux[256] = {};
+		strcpy(aux, "resources//");
+		strcat(aux, name);
+		strcat(aux, ".template");
+
+		std::ofstream outputFile(aux);
+		outputFile << mapWidth << std::endl << mapHeight << std::endl;
+		for (int y = 0; y < mapHeight; y++)
+		{
+			for (int x = 0; x < mapWidth; x++)
+			{
+				outputFile << (mapData.get(x, y).type) << ",";
+			}
+			outputFile << "\n";
+		}
+	
 	}
 
 	ImGui::NewLine();
@@ -1058,10 +1128,69 @@ void imguiFunc(float deltaTime)
 				}
 			}
 
-			itemPosEditorEnd = itemPosEditorBegin + glm::ivec2{ coppiedSizeX ,coppiedSizeY };
+			itemPosEditorEnd = itemPosEditorBegin + glm::ivec2{ coppiedSizeX-1 ,coppiedSizeY-1 };
+		}
+
+		{
+		
+
+			std::string path = "resources/";
+			for (const auto &entry : std::filesystem::directory_iterator(path))
+			{
+				std::string s = entry.path().string();
+				auto it = s.find(".template");
+				if(it != std::string::npos)
+				{
+					bool copy = ImGui::Button(("Copy " + std::string(s.begin(), s.begin() + it)).c_str());
+
+					if(copy)
+					{
+						
+						std::ifstream inputFile(s);
+
+						int w; int h;
+
+						inputFile >> w >> h;
+
+						coppyedBlocks.clear();
+
+						coppiedSizeX = w;
+						coppiedSizeY = h;
+
+						coppyedBlocks.reserve(coppiedSizeX *coppiedSizeY);
+
+
+						int it = 0;
+						std::string current;
+
+						for (int i = 0; i <= h; i++)
+						{
+							std::getline(inputFile, current);
+							for (auto i = 0; i < current.length(); i++)
+							{
+								std::string number;
+								while (current[i] != ',')
+								{
+									number += current[i];
+									i++;
+								}
+								coppyedBlocks.push_back(static_cast<unsigned short>(std::stoi(number)));
+							}
+						}
+
+						itemPosEditorEnd = itemPosEditorBegin + glm::ivec2{ coppiedSizeX - 1 ,coppiedSizeY - 1 };
+					}
+				}
+
+			}
+
 		}
 
 
+		if(itemPosEditorEnd == itemPosEditorBegin && coppiedSizeX && coppiedSizeY)
+		{
+			itemPosEditorEnd = itemPosEditorBegin + glm::ivec2{ coppiedSizeX - 1 ,coppiedSizeY - 1 };
+		}
 
 	}
 
