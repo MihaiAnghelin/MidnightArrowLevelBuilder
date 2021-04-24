@@ -526,14 +526,14 @@ bool gameLogic(float deltaTime)
 			auto light = mapData.get(x, y).mainColor.w;
 			mapData.get(x, y).mainColor.w = 0;
 			if (collidable) {
-				if (isColidable(mapData.get(x, y).type))
+				if (isCollidable(mapData.get(x, y).type))
 				{
 					mapData.get(x, y).mainColor.w = 1;
 				}
 			}
 			else
 			{
-				if (isColidable(mapData.get(x, y).type))
+				if (isCollidable(mapData.get(x, y).type))
 				{
 					mapData.get(x, y).mainColor.w = 0.2;
 				}
@@ -542,14 +542,14 @@ bool gameLogic(float deltaTime)
 
 			if (nonCollidable)
 			{
-				if (!isColidable(mapData.get(x, y).type))
+				if (!isCollidable(mapData.get(x, y).type))
 				{
 					mapData.get(x, y).mainColor.w = 1;
 				}
 			}
 			else
 			{
-				if (!isColidable(mapData.get(x, y).type))
+				if (!isCollidable(mapData.get(x, y).type))
 				{
 					mapData.get(x, y).mainColor.w = 0.2;
 				}
@@ -574,7 +574,7 @@ bool gameLogic(float deltaTime)
 	{
 		for (int x = 0; x < mapData.w; x++)
 		{
-			if (isColidable(mapData.get(x, y).type))
+			if (isCollidable(mapData.get(x, y).type))
 			{
 				if(showBoxes)
 				{
@@ -1021,7 +1021,7 @@ void imguiFunc(float deltaTime)
 				unsigned short localCount = 0;
 				while (mCount < Block::lastBlock)
 				{
-					if (isColidable(mCount) && !isUnfinished(mCount))
+					if (isCollidable(mCount) && !isUnfinished(mCount))
 					{
 						ImGui::PushID(mCount);
 						if (ImGui::ImageButton((void *)(intptr_t)sprites.id,
@@ -1044,7 +1044,7 @@ void imguiFunc(float deltaTime)
 				unsigned short localCount = 0;
 				while (mCount < Block::lastBlock)
 				{
-					if (!isColidable(mCount) && !isUnfinished(mCount))
+					if (!isCollidable(mCount) && !isUnfinished(mCount))
 					{
 						ImGui::PushID(mCount);
 						if (ImGui::ImageButton((void *)(intptr_t)sprites.id,
@@ -1071,6 +1071,8 @@ void imguiFunc(float deltaTime)
 
 	if (editorOption == 2)
 	{
+		ImGui::Text("Positon: %d, %d", itemPosEditorBegin.x, itemPosEditorBegin.y);
+
 		bool copy = ImGui::Button("Copy");
 		bool del = ImGui::Button("Delete");
 		bool cut = ImGui::Button("Cut");

@@ -144,10 +144,10 @@ namespace Block
 		unfinished56, unfinished57, unfinished58, unfinished59, unfinished60,
 		unfinished61, unfinished62, unfinished63, unfinished64, unfinished65,
 		unfinished66, unfinished67, unfinished68, unfinished69, unfinished70,
-		unfinished71, unfinished72, unfinished73, unfinished74, unfinished75,
+		unfinished71, unfinished72, unfinished73, unfinished74,
 	#pragma endregion
-
-		chainDecoration, /////////////////////////////start walls
+		brickDecoration,/////////////////////////////start walls
+		chainDecoration,
 		brickDecoration1,
 		brickDecoration2,
 		brickDecoration3,
@@ -309,6 +309,18 @@ namespace Block
 		lavaSource,
 		table1,
 		table2,
+		vines3,
+		vines4,
+		vines5,
+		vines6,
+		vines7,
+		vines8,
+		vines9,
+		mushroom2,
+		grassWall1,
+		grassWall2,
+		grassWall3,
+		butterfy,
 		lastBlock,
 
 	};
@@ -425,7 +437,7 @@ inline bool isBlueNoSolid(unsigned short  b)
 	else { return 0; }
 }
 
-inline bool isColidable(unsigned short b)
+inline bool isCollidable(unsigned short b)
 {
 
 	if (
@@ -452,11 +464,12 @@ inline bool isColidable(unsigned short b)
 		b == Block::snowSolid2 ||
 		b == Block::snowSolid9 ||
 		b == Block::bridge2
-		) {
+		)
+	{
 		return 0;
 	}
 
-	if (b < Block::chainDecoration)
+	if (b < Block::brickDecoration)
 	{
 		return 1;
 	}
@@ -470,18 +483,24 @@ inline bool isColidable(unsigned short b)
 
 inline bool isCollidableForArrows(unsigned short b)
 {
-	return (isColidable(b) && b != Block::bareer);
+	return (isCollidable(b) && b != Block::bareer);
 }
 
 inline bool isOpaque(unsigned short  b)
 {
-	return isColidable(b);
+	return isCollidable(b);
 }
 
 inline bool isLitTorch(unsigned short b)
 {
 	return b == Block::torceTopBrickLit || b == Block::torceTopLeavesLit || b == Block::litLantern
-		|| b == Block::torchLitWood || b == Block::snowLitTorch;
+		|| b == Block::torchLitWood || b == Block::snowLitTorch
+		|| b == Block::lava
+		|| b == Block::lavaBottom
+		|| b == Block::lavaTop
+		|| b == Block::lavaKill
+		|| b == Block::lavaSource
+		;
 }
 
 inline bool unLitTorch(unsigned short b)
@@ -516,16 +535,29 @@ inline bool isSign(unsigned short b)
 		b == Block::signDecoration5;
 }
 
-
 inline bool isDoor(unsigned short b)
 {
 	return b == Block::levelExit;
 }
 
-
 inline bool isUnfinished(unsigned short b)
 {
-	return b >= Block::unfinished30 && b <= Block::unfinished75;
+	return b >= Block::unfinished30 && b <= Block::unfinished74;
+}
+
+inline bool isIce(unsigned short b)
+{
+	return (b == Block::ice1
+		|| b == Block::ice2
+		|| b == Block::ice3
+		|| b == Block::ice4
+		|| b == Block::ice5
+		|| b == Block::ice6
+		|| b == Block::ice7
+		|| b == Block::ice8
+		|| b == Block::ice9
+		|| b == Block::ice10
+		|| b == Block::ice11);
 }
 
 struct torchData

@@ -1,5 +1,6 @@
 #include "Entity.h"
 #include "glm/glm.hpp"
+#include "mapData.h"
 
 float gravitationalAcceleration = 64;
 float jumpSpeed = 22;
@@ -243,7 +244,7 @@ void Entity::checkGrounded(MapData &mapDat)
 
 	for(int x=minx; x<=maxx; x++)
 	{
-		if(isColidable(mapDat.get(x, floor((pos.y +dimensions.y + 0.1)/BLOCK_SIZE)).type))
+		if(isCollidable(mapDat.get(x, floor((pos.y +dimensions.y + 0.1)/BLOCK_SIZE)).type))
 		{
 			grounded = 1;
 			break;
@@ -280,9 +281,9 @@ void Entity::checkWall(MapData & mapData, int move)
 
 	//for(int y= minY; y<maxY; y++)
 	//{
-	if(isColidable(mapData.get(rightX, minY).type) && move > 0)
+	if(isCollidable(mapData.get(rightX, minY).type) && move > 0)
 	{
-		if ((minY == 0 || !isColidable(mapData.get(rightX, minY - 1).type)))
+		if ((minY == 0 || !isCollidable(mapData.get(rightX, minY - 1).type)))
 		{
 			if(snapWallGrab)
 			{
@@ -291,9 +292,9 @@ void Entity::checkWall(MapData & mapData, int move)
 			wallGrab = 1;
 		}
 	}
-	if (isColidable(mapData.get(leftX, minY).type) && move < 0)
+	if (isCollidable(mapData.get(leftX, minY).type) && move < 0)
 	{
-		if (minY == 0 || !isColidable(mapData.get(leftX, minY - 1).type))
+		if (minY == 0 || !isCollidable(mapData.get(leftX, minY - 1).type))
 		{
 			if (snapWallGrab)
 			{
@@ -440,7 +441,7 @@ void Arrow::checkCollision(MapData &mapData)
 			break;
 		}
 
-		if(isColidable(mapData.get(curPos.x / BLOCK_SIZE, curPos.y / BLOCK_SIZE).type))
+		if(isCollidable(mapData.get(curPos.x / BLOCK_SIZE, curPos.y / BLOCK_SIZE).type))
 		{
 			stuckInWall = 1;
 			break;
