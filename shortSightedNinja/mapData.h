@@ -9,8 +9,9 @@
 
 namespace Block
 {
-	enum: unsigned short
+	enum : unsigned short
 	{
+
 		none = 0,
 		bareer,
 		solidBrick1,
@@ -134,7 +135,7 @@ namespace Block
 		lavaLeftBlock,
 		lavaRightBlock,
 		lavaBottomBlock,
-	#pragma region unfinished
+#pragma region unfinished
 		unfinished30,
 		unfinished31, unfinished32, unfinished33, unfinished34, unfinished35,
 		unfinished36, unfinished37, unfinished38, unfinished39, unfinished40,
@@ -145,7 +146,7 @@ namespace Block
 		unfinished61, unfinished62, unfinished63, unfinished64, unfinished65,
 		unfinished66, unfinished67, unfinished68, unfinished69, unfinished70,
 		unfinished71, unfinished72, unfinished73, unfinished74,
-	#pragma endregion
+#pragma endregion
 		brickDecoration,/////////////////////////////start walls
 		chainDecoration,
 		brickDecoration1,
@@ -168,8 +169,8 @@ namespace Block
 		leavesDecoration3,
 		leavesDecoration4,
 		windowDecoration,
-		trunk1,
-		trunk2,
+		pole1,
+		pole2,
 		sign,
 		waterFall,
 		waterFallBegin,
@@ -321,7 +322,24 @@ namespace Block
 		grassWall2,
 		grassWall3,
 		butterfy,
+		spike5,
+		spike6,
+		spike7,
+		spike8,
+		chairDecoration,
+		torceBottom2,
+		platform1,
+		platform2,
+		platform3,
+		platform4,
+		platform5,
+		platform6,
+		pole3,
+		pole4,
+		pole5,
+		pole6,
 		lastBlock,
+
 
 	};
 };
@@ -338,6 +356,10 @@ inline bool isSpike(unsigned short b)
 		|| b == Block::spike2
 		|| b == Block::spike3
 		|| b == Block::spike4
+		|| b == Block::spike5
+		|| b == Block::spike6
+		|| b == Block::spike7
+		|| b == Block::spike8
 		;
 
 }

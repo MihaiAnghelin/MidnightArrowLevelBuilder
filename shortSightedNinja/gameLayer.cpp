@@ -38,7 +38,6 @@ gl2d::Texture sprites;
 gl2d::FrameBuffer backGroundFBO;
 gl2d::Texture backgroundTexture;
 
-std::vector<Arrow> arrows;
 std::vector<signData> signs;
 std::vector<doorData> doors;
 std::vector<torchData> torches;
@@ -46,6 +45,12 @@ std::vector<torchData> torches;
 std::vector<unsigned short> coppyedBlocks;
 int coppiedSizeX = 0;
 int coppiedSizeY = 0;
+int coppiedBeginX = 0;
+int coppiedBeginY = 0;
+
+std::vector<signData> coppiedSigns;
+std::vector<doorData> coppiedDoors;
+std::vector<torchData> coppiedTorches;
 
 unsigned short currentBlock = Block::blueNoSolid1;
 
@@ -161,6 +166,7 @@ bool gameLogic(float deltaTime)
 	glViewport(0, 0, w, h);
 	renderer2d.updateWindowMetrics(w, h);
 
+	constexpr float speed = 600.f;
 
 #pragma region Camera Movement
 	if (platform::isKeyHeld('Q'))
@@ -173,19 +179,19 @@ bool gameLogic(float deltaTime)
 	}
 	if (platform::isKeyHeld('D'))
 	{
-		renderer2d.currentCamera.position.x += deltaTime * 220;
+		renderer2d.currentCamera.position.x += deltaTime * speed;
 	}
 	if (platform::isKeyHeld('A'))
 	{
-		renderer2d.currentCamera.position.x -= deltaTime * 220;
+		renderer2d.currentCamera.position.x -= deltaTime * speed;
 	}
 	if (platform::isKeyHeld('W'))
 	{
-		renderer2d.currentCamera.position.y -= deltaTime * 220;
+		renderer2d.currentCamera.position.y -= deltaTime * speed;
 	}
 	if (platform::isKeyHeld('S'))
 	{
-		renderer2d.currentCamera.position.y += deltaTime * 220;
+		renderer2d.currentCamera.position.y += deltaTime * speed;
 	}
 #pragma endregion
 
@@ -589,7 +595,12 @@ bool gameLogic(float deltaTime)
 				}
 
 			}
-			else if (mapData.get(x, y).type == Block::water3 && showDangers)
+			else if (
+				(mapData.get(x, y).type == Block::water3 
+					|| mapData.get(x, y).type == Block::lavaKill
+					)
+				
+				&& showDangers)
 			{
 				renderer2d.renderRectangle({ x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE }, { 1,0.2,0.2,0.9 });
 			}
@@ -1085,7 +1096,14 @@ void imguiFunc(float deltaTime)
 
 			coppiedSizeX = itemPosEditorEnd.x - itemPosEditorBegin.x + 1;
 			coppiedSizeY = itemPosEditorEnd.y - itemPosEditorBegin.y + 1;
+			coppiedBeginX = itemPosEditorBegin.x;
+			coppiedBeginY = itemPosEditorBegin.y;
 
+			coppiedSigns.clear();
+			coppiedDoors.clear();
+			coppiedTorches.clear();
+			
+			
 			coppyedBlocks.reserve(coppiedSizeX * coppiedSizeY);
 
 			for (int y = itemPosEditorBegin.y; y < itemPosEditorBegin.y + coppiedSizeY; y++)
@@ -1094,6 +1112,69 @@ void imguiFunc(float deltaTime)
 				{
 					auto b = mapData.get(x, y);
 					coppyedBlocks.push_back(b.type);
+				}
+			}
+
+			for (int i = 0; i < signs.size(); i++)
+			{
+				auto p = signs[i].pos;
+
+				if (p.x >= coppiedBeginX 
+					&& p.y >= coppiedBeginY
+					&& p.x <= itemPosEditorEnd.x
+					&& p.y <= itemPosEditorEnd.y
+					)
+				{
+					auto item = signs[i];
+					if(cut)
+					{
+						signs.erase(signs.begin() + i);
+						i--;
+					}
+
+					coppiedSigns.push_back(item);
+				}
+			}
+
+			for (int i = 0; i < doors.size(); i++)
+			{
+				auto p = doors[i].pos;
+
+				if (p.x >= coppiedBeginX
+					&& p.y >= coppiedBeginY
+					&& p.x <= itemPosEditorEnd.x
+					&& p.y <= itemPosEditorEnd.y
+					)
+				{
+					auto item = doors[i];
+					if(cut)
+					{
+						doors.erase(doors.begin() + i);
+						i--;
+					}
+
+					coppiedDoors.push_back(item);
+				}
+			}
+
+			for (int i = 0; i < torches.size(); i++)
+			{
+				auto p = torches[i].pos;
+
+				if (p.x >= coppiedBeginX
+					&& p.y >= coppiedBeginY
+					&& p.x <= itemPosEditorEnd.x
+					&& p.y <= itemPosEditorEnd.y
+					)
+				{
+					auto item = torches[i];
+					if (cut)
+					{
+						torches.erase(torches.begin() + i);
+						i--;
+					}
+
+					coppiedTorches.push_back(item);
 				}
 			}
 
@@ -1128,6 +1209,27 @@ void imguiFunc(float deltaTime)
 					i++;
 
 				}
+			}
+
+			int coppiedDeltaX = itemPosEditorBegin.x - coppiedBeginX;
+			int coppiedDeltaY = itemPosEditorBegin.y - coppiedBeginY;
+
+			for (auto i : coppiedSigns)
+			{
+				i.pos += glm::ivec2{coppiedDeltaX, coppiedDeltaY};
+				signs.push_back(i);
+			}
+
+			for (auto i : coppiedDoors)
+			{
+				i.pos += glm::ivec2{ coppiedDeltaX, coppiedDeltaY };
+				doors.push_back(i);
+			}
+			
+			for (auto i : coppiedTorches)
+			{
+				i.pos += glm::ivec2{ coppiedDeltaX, coppiedDeltaY };
+				torches.push_back(i);
 			}
 
 			itemPosEditorEnd = itemPosEditorBegin + glm::ivec2{ coppiedSizeX-1 ,coppiedSizeY-1 };
