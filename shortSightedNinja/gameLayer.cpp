@@ -674,7 +674,7 @@ void imguiFunc(float deltaTime)
 		renderer2d.currentCamera.setDefault();
 
 		char aux[256];
-		strcpy(aux, "resources//");
+		strcpy(aux, "resources/levels/");
 		strcat(aux, name);
 		strcat(aux, ".level");
 		std::ifstream inputFile(aux);
@@ -832,7 +832,7 @@ void imguiFunc(float deltaTime)
 	if (ImGui::Button("Save Map"))
 	{
 		char aux[256] = {};
-		strcpy(aux, "resources//");
+		strcpy(aux, "resources/levels/");
 		strcat(aux, name);
 		strcat(aux, ".level");
 
@@ -887,7 +887,7 @@ void imguiFunc(float deltaTime)
 	if(ImGui::Button("Save Template"))
 	{
 		char aux[256] = {};
-		strcpy(aux, "resources//");
+		strcpy(aux, "resources/templates/");
 		strcat(aux, name);
 		strcat(aux, ".template");
 
@@ -1087,7 +1087,7 @@ void imguiFunc(float deltaTime)
 		bool cut = ImGui::Button("Cut");
 		ImGui::NewLine();
 		bool paste = ImGui::Button("Paste");
-		
+		ImGui::NewLine();
 		if(copy || cut)
 		{
 			coppyedBlocks.clear();
@@ -1236,7 +1236,7 @@ void imguiFunc(float deltaTime)
 		{
 		
 
-			std::string path = "resources/";
+			std::string path = "resources/templates/";
 			for (const auto &entry : std::filesystem::directory_iterator(path))
 			{
 				std::string s = entry.path().string();
