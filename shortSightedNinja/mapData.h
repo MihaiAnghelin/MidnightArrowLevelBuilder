@@ -338,6 +338,12 @@ namespace Block
 		pole4,
 		pole5,
 		pole6,
+		platform7,
+		fireFly,
+		craw,
+		killBlock,
+		cart1,
+		cart2,
 		lastBlock,
 
 

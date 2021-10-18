@@ -3,27 +3,8 @@
 #include <algorithm>
 #include "math.h"
 #include <glm/glm.hpp>
-#include "Entity.h"
 
 #undef max
-
-extern gl2d::Renderer2D renderer2d;
-
-void drawLine(glm::vec2 x, glm::vec2 y, glm::vec3 color, float width)
-{
-	y = y - x;
-	auto pos = renderer2d.toScreen({ x.x, x.y, y.x, y.y });
-	glLineWidth(width);
-	
-	glUseProgram(0);
-
-	glBegin(GL_LINES);
-	glColor3f(color.x, color.y, color.z);
-	glVertex2f(pos.x, pos.y);
-	glVertex2f(pos.z, pos.w);
-	glEnd();
-
-}
 
 void simuleteLightSpot(glm::vec2 pos, float radius, MapData & mapData)
 {
@@ -98,11 +79,3 @@ void simuleteLightSpot(glm::vec2 pos, float radius, MapData & mapData)
 
 }
 
-/////////////////
-//(0,0)  -> (16, 0)
-//
-//	
-//
-//
-//
-//

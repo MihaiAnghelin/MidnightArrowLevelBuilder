@@ -14,7 +14,6 @@
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_win32.h"
 
-#include "input.h"
 
 extern bool g_WantUpdateHasGamepad;
 
@@ -96,7 +95,6 @@ int MAIN
 	ImGui_ImplOpenGL3_Init(glslVersion);
 	ImGui::StyleColorsDark();
 
-	input::loadXinput();
 
 	if (!initGame())
 	{
@@ -124,9 +122,6 @@ int MAIN
 		
 			//todo
 			//fDeltaTime = std::min(fDeltaTime, 1.f / 20.f);
-		
-			input::updateInput();
-
 		
 
 			ImGui_ImplOpenGL3_NewFrame();
@@ -362,35 +357,35 @@ namespace platform
 
 	int isKeyHeld(int key)
 	{
-		return GetAsyncKeyState(key);
+		return GetAsyncKeyState(key) && isFocused();
 	}
 
 	int isKeyPressedOn(int key)
 	{
-		return GetAsyncKeyState(key) & 0x8000;
+		return (GetAsyncKeyState(key) & 0x8000) && isFocused();
 	}
 
 	int isRMouseButtonPressed()
 	{
-		return rbuttonPressed;
+		return rbuttonPressed && isFocused();
 	}
 
 	int isLMouseButtonPressed()
 	{
 		ImGuiIO& io = ImGui::GetIO();
-		return (!io.WantCaptureMouse) && lbuttonPressed;
+		return (!io.WantCaptureMouse) && lbuttonPressed && isFocused();
 	}
 
 	int isLMouseHeld()
 	{
 		ImGuiIO& io = ImGui::GetIO();
 
-		return (!io.WantCaptureMouse) && lbutton;
+		return (!io.WantCaptureMouse) && lbutton && isFocused();
 	}
 
 	int isRMouseHeld()
 	{
-		return rbutton;
+		return rbutton && isFocused();
 	}
 
 	void showMouse(bool show)

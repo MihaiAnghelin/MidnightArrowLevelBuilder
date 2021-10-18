@@ -4,8 +4,6 @@
 #include "mapRenderer.h"
 #include "mapData.h"
 #include "math.h"
-#include "Entity.h"
-#include "input.h"
 #include <fstream>
 #include "imgui.h"
 #include <string>
@@ -60,7 +58,7 @@ unsigned short* map = nullptr;
 
 bool collidable = true;
 bool nonCollidable = true;
-bool showBoxes = false;
+bool showBoxes = true;
 bool showInvisibleBoxes = true;
 bool showDangers = false;
 bool simulateLights = false;
